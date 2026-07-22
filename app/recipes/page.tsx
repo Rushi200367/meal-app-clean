@@ -1,7 +1,8 @@
 "use client";
 import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Bookmark, BookmarkCheck, Clock, Users, Zap, CheckCircle2, ShoppingCart, AlertCircle } from "lucide-react";
+import { ArrowLeft, Bookmark, BookmarkCheck, Clock, Users, Zap, CheckCircle2, ShoppingCart } from "lucide-react";
+import CartBottomSheet from "@/components/CartBottomSheet";
 
 function RecipeContent() {
   const router       = useRouter();
@@ -9,6 +10,7 @@ function RecipeContent() {
   const [saved, setSaved]     = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
+  const [cartOpen, setCartOpen] = useState(false);
   const [recipe, setRecipe]   = useState<{
     recipeName: string;
     steps: string[];
@@ -40,10 +42,8 @@ function RecipeContent() {
         });
 
         if (!response.ok) throw new Error("Failed to generate recipe");
-
         const data = await response.json();
         if (data.error) throw new Error(data.error);
-
         setRecipe(data);
       } catch (err: any) {
         setError(err.message || "Something went wrong");
@@ -76,7 +76,12 @@ function RecipeContent() {
               />
             ))}
           </div>
-          <style>{`@keyframes bounce { 0%, 100% { transform: translateY(0); opacity: 0.4; } 50% { transform: translateY(-6px); opacity: 1; } }`}</style>
+          <style>{`
+            @keyframes bounce {
+              0%, 100% { transform: translateY(0); opacity: 0.4; }
+              50% { transform: translateY(-6px); opacity: 1; }
+            }
+          `}</style>
         </div>
       </div>
     );
@@ -88,7 +93,7 @@ function RecipeContent() {
       <div className="min-h-screen bg-neutral-200 flex items-center justify-center p-0 md:p-6 antialiased font-sans">
         <div className="w-[393px] h-[852px] bg-[#FDFBF7] md:rounded-[48px] shadow-[0_32px_64px_rgba(0,0,0,0.12)] flex flex-col items-center justify-center gap-4 px-8">
           <div className="w-16 h-16 rounded-full bg-[#FFF0F0] flex items-center justify-center">
-            <AlertCircle className="w-8 h-8 text-[#FF6B6B] stroke-[1.8]" />
+            <span className="text-3xl">⚠️</span>
           </div>
           <div className="text-center space-y-1">
             <p className="text-[#1C1C1E] font-bold text-[16px]">Something went wrong</p>
@@ -165,28 +170,38 @@ function RecipeContent() {
             </div>
 
             {/* Ingredients used */}
-            <div className="bg-[#EAF2E8] rounded-[20px] p-4">
-              <p className="text-[#3B6E38] font-bold text-[13px] uppercase tracking-widest mb-2">
-                Your Ingredients
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {ingredients.split(",").filter(Boolean).map((item) => (
-                  <span
-                    key={item}
-                    className="bg-white text-[#3B6E38] text-[12px] font-semibold px-3 py-1 rounded-full"
-                  >
-                    {item.trim()}
-                  </span>
-                ))}
+            {ingredients && (
+              <div className="bg-[#EAF2E8] rounded-[20px] p-4">
+                <p className="text-[#3B6E38] font-bold text-[13px] uppercase tracking-widest mb-2">
+                  Your Ingredients
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {ingredients.split(",").filter(Boolean).map((item) => (
+                    <span
+                      key={item}
+                      className="bg-white text-[#3B6E38] text-[12px] font-semibold px-3 py-1 rounded-full"
+                    >
+                      {item.trim()}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Missing items */}
             {recipe.missingItems.length > 0 && (
               <div className="bg-[#FFF9F0] rounded-[20px] p-4 border border-[#FFE5B4]">
-                <div className="flex items-center gap-2 mb-2">
-                  <ShoppingCart className="w-4 h-4 text-[#F1A23A] stroke-[2.2]" />
-                  <p className="text-[#1C1C1E] font-bold text-[14px]">You'll also need</p>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <ShoppingCart className="w-4 h-4 text-[#F1A23A] stroke-[2.2]" />
+                    <p className="text-[#1C1C1E] font-bold text-[14px]">You'll also need</p>
+                  </div>
+                  <button
+                    onClick={() => setCartOpen(true)}
+                    className="bg-[#3B6E38] text-white text-[11px] font-bold px-3 py-1.5 rounded-full active:scale-95 transition-transform"
+                  >
+                    {ingredients ? "Add Missing" : "Shop Ingredients"}
+                  </button>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {recipe.missingItems.map((item) => (
@@ -239,6 +254,14 @@ function RecipeContent() {
             }
           </button>
         </div>
+
+        {/* Cart Bottom Sheet */}
+        <CartBottomSheet
+          isOpen={cartOpen}
+          onClose={() => setCartOpen(false)}
+          ingredients={recipe.missingItems}
+          mode={ingredients ? "missing" : "all"}
+        />
 
       </div>
     </div>
