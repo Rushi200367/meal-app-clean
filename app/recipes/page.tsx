@@ -4,14 +4,41 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Bookmark, BookmarkCheck, Clock, Users, Zap, CheckCircle2, ShoppingCart } from "lucide-react";
 import CartBottomSheet from "@/components/CartBottomSheet";
 
+async function fetchRecipeImage(recipeName: string): Promise<string> {
+  try {
+    console.log("Fetching image for:", recipeName);
+    console.log("Unsplash key:", process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY);
+    const query = encodeURIComponent(`${recipeName} food dish`);
+    const res = await fetch(
+      `https://api.unsplash.com/search/photos?query=${query}&per_page=1&orientation=landscape`,
+      {
+        headers: {
+          Authorization: `Client-ID ${process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY}`,
+        },
+      }
+    );
+    const data = await res.json();
+    console.log("Unsplash response:", data);
+    if (data.results && data.results.length > 0) {
+      return data.results[0].urls.regular;
+    }
+  } catch (err) {
+    console.error("Unsplash fetch failed:", err);
+  }
+  return "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=450&h=300&q=90";
+}
+
 function RecipeContent() {
   const router       = useRouter();
   const searchParams = useSearchParams();
-  const [saved, setSaved]     = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState<string | null>(null);
-  const [cartOpen, setCartOpen] = useState(false);
-  const [recipe, setRecipe]   = useState<{
+  const [saved, setSaved]             = useState(false);
+  const [loading, setLoading]         = useState(true);
+  const [error, setError]             = useState<string | null>(null);
+  const [cartOpen, setCartOpen]       = useState(false);
+  const [recipeImage, setRecipeImage] = useState<string>(
+    "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=450&h=300&q=90"
+  );
+  const [recipe, setRecipe] = useState<{
     recipeName: string;
     steps: string[];
     missingItems: string[];
@@ -45,6 +72,10 @@ function RecipeContent() {
         const data = await response.json();
         if (data.error) throw new Error(data.error);
         setRecipe(data);
+
+        const image = await fetchRecipeImage(data.recipeName);
+        setRecipeImage(image);
+
       } catch (err: any) {
         setError(err.message || "Something went wrong");
       } finally {
@@ -55,7 +86,6 @@ function RecipeContent() {
     fetchRecipe();
   }, [ingredients, diet]);
 
-  /* ── Loading state ── */
   if (loading) {
     return (
       <div className="min-h-screen bg-neutral-200 flex items-center justify-center p-0 md:p-6 antialiased font-sans">
@@ -65,7 +95,7 @@ function RecipeContent() {
           </div>
           <div className="text-center space-y-1">
             <p className="text-[#1C1C1E] font-bold text-[16px]">Crafting your recipe…</p>
-            <p className="text-[#8E8E93] text-[13px]">Gemini is cooking something up</p>
+            <p className="text-[#8E8E93] text-[13px]">Finding the perfect photo too</p>
           </div>
           <div className="flex gap-1.5 mt-2">
             {[0, 1, 2].map((i) => (
@@ -87,7 +117,6 @@ function RecipeContent() {
     );
   }
 
-  /* ── Error state ── */
   if (error || !recipe) {
     return (
       <div className="min-h-screen bg-neutral-200 flex items-center justify-center p-0 md:p-6 antialiased font-sans">
@@ -110,7 +139,6 @@ function RecipeContent() {
     );
   }
 
-  /* ── Recipe result ── */
   return (
     <div className="min-h-screen bg-neutral-200 flex items-center justify-center p-0 md:p-6 antialiased font-sans select-none">
       <div className="w-[393px] h-[852px] bg-[#FDFBF7] md:rounded-[48px] shadow-[0_32px_64px_rgba(0,0,0,0.12)] overflow-hidden flex flex-col relative">
@@ -118,13 +146,11 @@ function RecipeContent() {
         {/* Hero image */}
         <div className="relative w-full h-[220px] shrink-0 overflow-hidden">
           <img
-            src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=450&h=300&q=90"
+            src={recipeImage}
             alt={recipe.recipeName}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover transition-opacity duration-500"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-[#FDFBF7]" />
-
-          {/* back + save */}
           <div className="absolute top-12 left-0 right-0 flex items-center justify-between px-6">
             <button
               onClick={() => router.back()}
@@ -148,7 +174,6 @@ function RecipeContent() {
         <div className="flex-1 overflow-y-auto pb-28" style={{ scrollbarWidth: "none" }}>
           <div className="px-6 pt-3 space-y-5">
 
-            {/* Title + stats */}
             <div>
               <h1 className="text-[#1C1C1E] font-bold text-[24px] tracking-tight leading-tight">
                 {recipe.recipeName}
@@ -169,7 +194,6 @@ function RecipeContent() {
               </div>
             </div>
 
-            {/* Ingredients used */}
             {ingredients && (
               <div className="bg-[#EAF2E8] rounded-[20px] p-4">
                 <p className="text-[#3B6E38] font-bold text-[13px] uppercase tracking-widest mb-2">
@@ -177,10 +201,7 @@ function RecipeContent() {
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {ingredients.split(",").filter(Boolean).map((item) => (
-                    <span
-                      key={item}
-                      className="bg-white text-[#3B6E38] text-[12px] font-semibold px-3 py-1 rounded-full"
-                    >
+                    <span key={item} className="bg-white text-[#3B6E38] text-[12px] font-semibold px-3 py-1 rounded-full">
                       {item.trim()}
                     </span>
                   ))}
@@ -188,7 +209,6 @@ function RecipeContent() {
               </div>
             )}
 
-            {/* Missing items */}
             {recipe.missingItems.length > 0 && (
               <div className="bg-[#FFF9F0] rounded-[20px] p-4 border border-[#FFE5B4]">
                 <div className="flex items-center justify-between mb-2">
@@ -205,10 +225,7 @@ function RecipeContent() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {recipe.missingItems.map((item) => (
-                    <span
-                      key={item}
-                      className="bg-white border border-[#FFE5B4] text-[#C27A10] text-[12px] font-semibold px-3 py-1 rounded-full"
-                    >
+                    <span key={item} className="bg-white border border-[#FFE5B4] text-[#C27A10] text-[12px] font-semibold px-3 py-1 rounded-full">
                       {item}
                     </span>
                   ))}
@@ -216,20 +233,15 @@ function RecipeContent() {
               </div>
             )}
 
-            {/* Steps */}
             <div>
-              <h2 className="text-[#1C1C1E] font-bold text-[16px] tracking-tight mb-3">
-                Instructions
-              </h2>
+              <h2 className="text-[#1C1C1E] font-bold text-[16px] tracking-tight mb-3">Instructions</h2>
               <div className="space-y-3">
                 {recipe.steps.map((text, index) => (
                   <div key={index} className="flex gap-3 bg-white rounded-[18px] p-4 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
                     <div className="w-7 h-7 rounded-full bg-[#EAF2E8] flex items-center justify-center shrink-0 mt-0.5">
                       <span className="text-[#3B6E38] text-[12px] font-bold">{index + 1}</span>
                     </div>
-                    <p className="text-[#3C3C43] text-[14px] leading-relaxed font-normal flex-1">
-                      {text}
-                    </p>
+                    <p className="text-[#3C3C43] text-[14px] leading-relaxed font-normal flex-1">{text}</p>
                   </div>
                 ))}
               </div>
@@ -238,7 +250,6 @@ function RecipeContent() {
           </div>
         </div>
 
-        {/* Save button */}
         <div className="absolute bottom-0 left-0 right-0 px-6 pb-10 pt-3 bg-gradient-to-t from-[#FDFBF7] via-[#FDFBF7] to-transparent">
           <button
             onClick={() => setSaved(true)}
@@ -255,7 +266,6 @@ function RecipeContent() {
           </button>
         </div>
 
-        {/* Cart Bottom Sheet */}
         <CartBottomSheet
           isOpen={cartOpen}
           onClose={() => setCartOpen(false)}
