@@ -3,11 +3,10 @@ import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Bookmark, BookmarkCheck, Clock, Users, Zap, CheckCircle2, ShoppingCart } from "lucide-react";
 import CartBottomSheet from "@/components/CartBottomSheet";
+import AuthModal from "@/components/AuthModal";
 
 async function fetchRecipeImage(recipeName: string): Promise<string> {
   try {
-    console.log("Fetching image for:", recipeName);
-    console.log("Unsplash key:", process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY);
     const query = encodeURIComponent(`${recipeName} food dish`);
     const res = await fetch(
       `https://api.unsplash.com/search/photos?query=${query}&per_page=1&orientation=landscape`,
@@ -18,7 +17,6 @@ async function fetchRecipeImage(recipeName: string): Promise<string> {
       }
     );
     const data = await res.json();
-    console.log("Unsplash response:", data);
     if (data.results && data.results.length > 0) {
       return data.results[0].urls.regular;
     }
@@ -35,6 +33,8 @@ function RecipeContent() {
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState<string | null>(null);
   const [cartOpen, setCartOpen]       = useState(false);
+  const [authOpen, setAuthOpen]       = useState(false);
+  const [isLoggedIn, setIsLoggedIn]   = useState(false);
   const [recipeImage, setRecipeImage] = useState<string>(
     "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=450&h=300&q=90"
   );
@@ -217,7 +217,13 @@ function RecipeContent() {
                     <p className="text-[#1C1C1E] font-bold text-[14px]">You'll also need</p>
                   </div>
                   <button
-                    onClick={() => setCartOpen(true)}
+                    onClick={() => {
+                      if (isLoggedIn) {
+                        setCartOpen(true);
+                      } else {
+                        setAuthOpen(true);
+                      }
+                    }}
                     className="bg-[#3B6E38] text-white text-[11px] font-bold px-3 py-1.5 rounded-full active:scale-95 transition-transform"
                   >
                     {ingredients ? "Add Missing" : "Shop Ingredients"}
@@ -250,9 +256,16 @@ function RecipeContent() {
           </div>
         </div>
 
+        {/* Save button */}
         <div className="absolute bottom-0 left-0 right-0 px-6 pb-10 pt-3 bg-gradient-to-t from-[#FDFBF7] via-[#FDFBF7] to-transparent">
           <button
-            onClick={() => setSaved(true)}
+            onClick={() => {
+              if (isLoggedIn) {
+                setSaved(true);
+              } else {
+                setAuthOpen(true);
+              }
+            }}
             className={`w-full h-[58px] rounded-[20px] flex items-center justify-center gap-2 font-bold text-[16px] transition-all active:scale-[0.98] ${
               saved
                 ? "bg-[#EAF2E8] text-[#3B6E38]"
@@ -266,11 +279,23 @@ function RecipeContent() {
           </button>
         </div>
 
+        {/* Cart Bottom Sheet */}
         <CartBottomSheet
           isOpen={cartOpen}
           onClose={() => setCartOpen(false)}
           ingredients={recipe.missingItems}
           mode={ingredients ? "missing" : "all"}
+        />
+
+        {/* Auth Modal */}
+        <AuthModal
+          isOpen={authOpen}
+          onClose={() => {
+            setAuthOpen(false);
+            setIsLoggedIn(true);
+            setSaved(true);
+          }}
+          trigger="save"
         />
 
       </div>
