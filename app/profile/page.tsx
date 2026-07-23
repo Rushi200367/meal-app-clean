@@ -116,7 +116,7 @@ export default function ProfilePage() {
 
           {/* Log out */}
           <button
-            onClick={() => router.push("/login")}
+            onClick={() => router.push("/home")}
             className="w-full h-[58px] rounded-[20px] bg-[#FFF0F0] text-[#FF6B6B] font-bold text-[15px] flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
           >
             <LogOut className="w-5 h-5 stroke-[2.2]" />
