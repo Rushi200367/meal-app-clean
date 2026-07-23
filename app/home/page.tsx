@@ -2,11 +2,15 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, Utensils, Sparkles, ChevronRight, Menu, X, Bookmark, Clock, CalendarDays, Settings, LogOut, User } from "lucide-react";
+import AuthModal from "@/components/AuthModal";
 
 export default function PremiumHomeScreen() {
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
+  const [mounted, setMounted]     = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [authOpen, setAuthOpen]   = useState(false);
+  const [authTrigger, setAuthTrigger] = useState<"save" | "cart" | "history" | "profile">("profile");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { setMounted(true); }, []);
@@ -16,6 +20,16 @@ export default function PremiumHomeScreen() {
     if (hour < 12) return "Good Morning";
     if (hour < 17) return "Good Afternoon";
     return "Good Evening";
+  };
+
+  const handleProtectedAction = (trigger: "save" | "cart" | "history" | "profile", action: () => void) => {
+    if (isLoggedIn) {
+      action();
+    } else {
+      setDrawerOpen(false);
+      setAuthTrigger(trigger);
+      setAuthOpen(true);
+    }
   };
 
   if (!mounted) return null;
@@ -61,38 +75,108 @@ export default function PremiumHomeScreen() {
             >
               <X className="w-4 h-4 text-white stroke-[2.2]" />
             </button>
-            <div className="w-14 h-14 bg-[#EAF2E8] rounded-2xl flex items-center justify-center mb-3">
-              <span className="text-3xl">👨‍🍳</span>
-            </div>
-            <p className="text-white font-bold text-[18px]">Rushi Shah</p>
-            <p className="text-[#E2ECD2] text-[13px] mt-0.5">rushi@email.com</p>
-            <span className="inline-block mt-2 bg-white/20 text-white text-[11px] font-bold px-3 py-1 rounded-full">
-              Free Plan
-            </span>
+
+            {isLoggedIn ? (
+              <>
+                <div className="w-14 h-14 bg-[#EAF2E8] rounded-2xl flex items-center justify-center mb-3">
+                  <span className="text-3xl">👨‍🍳</span>
+                </div>
+                <p className="text-white font-bold text-[18px]">Rushi Shah</p>
+                <p className="text-[#E2ECD2] text-[13px] mt-0.5">rushi@email.com</p>
+                <span className="inline-block mt-2 bg-white/20 text-white text-[11px] font-bold px-3 py-1 rounded-full">
+                  Free Plan
+                </span>
+              </>
+            ) : (
+              <>
+                <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center mb-3">
+                  <User className="w-7 h-7 text-white stroke-[1.8]" />
+                </div>
+                <p className="text-white font-bold text-[18px]">Welcome!</p>
+                <p className="text-[#E2ECD2] text-[13px] mt-0.5">Sign in to unlock all features</p>
+                <button
+                  onClick={() => {
+                    setDrawerOpen(false);
+                    setAuthTrigger("profile");
+                    setAuthOpen(true);
+                  }}
+                  className="inline-block mt-2 bg-white text-[#3B6E38] text-[11px] font-bold px-3 py-1 rounded-full active:scale-95 transition-transform"
+                >
+                  Sign In →
+                </button>
+              </>
+            )}
           </div>
 
-          {/* Stats row */}
-          <div className="flex gap-2 px-4 py-4 shrink-0">
-            {[
-              { label: "Saved",  value: 12, color: "#3B6E38" },
-              { label: "Cooked", value: 8,  color: "#F1A23A" },
-              { label: "Liked",  value: 5,  color: "#FF6B6B" },
-            ].map(({ label, value, color }) => (
-              <div key={label} className="flex-1 bg-white rounded-2xl py-3 text-center shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
-                <p className="font-bold text-[18px]" style={{ color }}>{value}</p>
-                <p className="text-[#8E8E93] text-[11px] font-medium mt-0.5">{label}</p>
-              </div>
-            ))}
-          </div>
+          {/* Stats row — only show if logged in */}
+          {isLoggedIn && (
+            <div className="flex gap-2 px-4 py-4 shrink-0">
+              {[
+                { label: "Saved",  value: 0,  color: "#3B6E38" },
+                { label: "Cooked", value: 0,  color: "#F1A23A" },
+                { label: "Liked",  value: 0,  color: "#FF6B6B" },
+              ].map(({ label, value, color }) => (
+                <div key={label} className="flex-1 bg-white rounded-2xl py-3 text-center shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+                  <p className="font-bold text-[18px]" style={{ color }}>{value}</p>
+                  <p className="text-[#8E8E93] text-[11px] font-medium mt-0.5">{label}</p>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Nav items */}
-          <div className="flex-1 overflow-y-auto px-3 pb-4" style={{ scrollbarWidth: "none" }}>
+          <div className="flex-1 overflow-y-auto px-3 pb-4 pt-3" style={{ scrollbarWidth: "none" }}>
             {[
-              { icon: User,         label: "Profile",            sub: "View your account", color: "#3B6E38", bg: "#EAF2E8", action: () => { setDrawerOpen(false); router.push("/profile"); } },
-              { icon: Bookmark,     label: "Saved Recipes",      sub: "12 recipes saved",  color: "#3B6E38", bg: "#EAF2E8", action: () => { setDrawerOpen(false); } },
-              { icon: Clock,        label: "Recently Generated", sub: "Last 5 recipes",    color: "#3B6E38", bg: "#EAF2E8", action: () => { setDrawerOpen(false); } },
-              { icon: CalendarDays, label: "Weekly Plan",        sub: "Plan your meals",   color: "#F1A23A", bg: "#FFF6E9", action: () => { setDrawerOpen(false); router.push("/weekly"); } },
-              { icon: Settings,     label: "Settings",           sub: "App preferences",   color: "#8E8E93", bg: "#F2F2F7", action: () => { setDrawerOpen(false); } },
+              {
+                icon: User,
+                label: "Profile",
+                sub: "View your account",
+                color: "#3B6E38",
+                bg: "#EAF2E8",
+                action: () => handleProtectedAction("profile", () => {
+                  setDrawerOpen(false);
+                  router.push("/profile");
+                })
+              },
+              {
+                icon: Bookmark,
+                label: "Saved Recipes",
+                sub: isLoggedIn ? "0 recipes saved" : "Sign in to save",
+                color: "#3B6E38",
+                bg: "#EAF2E8",
+                action: () => handleProtectedAction("save", () => {
+                  setDrawerOpen(false);
+                })
+              },
+              {
+                icon: Clock,
+                label: "Recently Generated",
+                sub: isLoggedIn ? "Your last recipes" : "Sign in to view",
+                color: "#3B6E38",
+                bg: "#EAF2E8",
+                action: () => handleProtectedAction("history", () => {
+                  setDrawerOpen(false);
+                })
+              },
+              {
+                icon: CalendarDays,
+                label: "Weekly Plan",
+                sub: "Plan your meals",
+                color: "#F1A23A",
+                bg: "#FFF6E9",
+                action: () => {
+                  setDrawerOpen(false);
+                  router.push("/weekly");
+                }
+              },
+              {
+                icon: Settings,
+                label: "Settings",
+                sub: "App preferences",
+                color: "#8E8E93",
+                bg: "#F2F2F7",
+                action: () => setDrawerOpen(false)
+              },
             ].map(({ icon: Icon, label, sub, color, bg, action }) => (
               <button
                 key={label}
@@ -112,15 +196,34 @@ export default function PremiumHomeScreen() {
 
             <div className="h-px bg-[#F2F2F7] mx-3 my-2" />
 
-            <button
-              onClick={() => { setDrawerOpen(false); router.push("/login"); }}
-              className="w-full flex items-center gap-3 px-3 py-3 rounded-2xl active:bg-[#FFF0F0] transition-colors"
-            >
-              <div className="w-10 h-10 rounded-xl bg-[#FFF0F0] flex items-center justify-center shrink-0">
-                <LogOut className="w-4 h-4 text-[#FF6B6B] stroke-[2.2]" />
-              </div>
-              <p className="text-[#FF6B6B] font-semibold text-[14px]">Log Out</p>
-            </button>
+            {isLoggedIn ? (
+              <button
+                onClick={() => {
+                  setIsLoggedIn(false);
+                  setDrawerOpen(false);
+                }}
+                className="w-full flex items-center gap-3 px-3 py-3 rounded-2xl active:bg-[#FFF0F0] transition-colors"
+              >
+                <div className="w-10 h-10 rounded-xl bg-[#FFF0F0] flex items-center justify-center shrink-0">
+                  <LogOut className="w-4 h-4 text-[#FF6B6B] stroke-[2.2]" />
+                </div>
+                <p className="text-[#FF6B6B] font-semibold text-[14px]">Log Out</p>
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  setDrawerOpen(false);
+                  setAuthTrigger("profile");
+                  setAuthOpen(true);
+                }}
+                className="w-full flex items-center gap-3 px-3 py-3 rounded-2xl active:bg-[#EAF2E8] transition-colors"
+              >
+                <div className="w-10 h-10 rounded-xl bg-[#EAF2E8] flex items-center justify-center shrink-0">
+                  <User className="w-4 h-4 text-[#3B6E38] stroke-[2.2]" />
+                </div>
+                <p className="text-[#3B6E38] font-semibold text-[14px]">Sign In</p>
+              </button>
+            )}
           </div>
         </div>
 
@@ -151,10 +254,9 @@ export default function PremiumHomeScreen() {
           {/* Spacer */}
           <div className="flex-1" />
 
-          {/* Cards at bottom */}
+          {/* Cards */}
           <div className="px-5 pb-8 space-y-3">
 
-            {/* Scan Groceries */}
             <div
               onClick={() => router.push("/scanner")}
               className="w-full relative bg-[#3B6E38]/90 backdrop-blur-sm shadow-[0_10px_24px_rgba(0,0,0,0.3)] cursor-pointer transition-all active:scale-[0.99] overflow-hidden flex items-center justify-between px-6"
@@ -176,7 +278,6 @@ export default function PremiumHomeScreen() {
               </div>
             </div>
 
-            {/* Generate with Ingredients */}
             <div
               onClick={() => router.push("/preferences")}
               className="w-full bg-white/90 backdrop-blur-sm flex items-center justify-between px-5 shadow-[0_4px_20px_rgba(0,0,0,0.15)] cursor-pointer transition-all active:scale-[0.99]"
@@ -194,7 +295,6 @@ export default function PremiumHomeScreen() {
               <ChevronRight className="w-4 h-4 text-[#C7C7CC] stroke-[2.5] shrink-0" />
             </div>
 
-            {/* Surprise Me */}
             <div
               onClick={() => router.push("/surprise")}
               className="w-full bg-white/90 backdrop-blur-sm flex items-center justify-between px-5 shadow-[0_4px_20px_rgba(0,0,0,0.15)] cursor-pointer transition-all active:scale-[0.99]"
@@ -214,6 +314,17 @@ export default function PremiumHomeScreen() {
 
           </div>
         </div>
+
+        {/* Auth Modal */}
+        <AuthModal
+          isOpen={authOpen}
+          onClose={() => {
+            setAuthOpen(false);
+            setIsLoggedIn(true);
+          }}
+          trigger={authTrigger}
+        />
+
       </div>
     </div>
   );
