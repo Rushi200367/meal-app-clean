@@ -3,10 +3,6 @@ import { GoogleGenAI, Type, Schema } from "@google/genai";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
-// ==========================================
-// STRICT ENGINE SCHEMAS
-// This locks the AI into the exact property keys your UI needs
-// ==========================================
 const SingleRecipeSchema: Schema = {
   type: Type.OBJECT,
   properties: {
@@ -53,13 +49,12 @@ const SurpriseRecipeSchema: Schema = {
 export async function POST(request: Request) {
   try {
     const { ingredient, type, dietaryProfile } = await request.json();
-    
+
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return NextResponse.json({ error: "Server Configuration Error" }, { status: 500 });
     }
 
-    // Constraint Processing
     const constraints = [
       dietaryProfile?.diet && dietaryProfile.diet !== "any" ? `Diet: Strict ${dietaryProfile.diet}.` : "",
       dietaryProfile?.allergies && dietaryProfile.allergies.length > 0 ? `EXCLUDE completely: ${dietaryProfile.allergies.join(", ")}.` : "",
@@ -69,7 +64,6 @@ export async function POST(request: Request) {
     let prompt = "";
     let activeSchema: Schema;
 
-    // Direct Pipeline Assignment
     if (type === "surprise") {
       prompt = `Generate 1 unique creative theme, 1 signature recipe dish name using "${ingredient || "seasonal staples"}", simple sequential preparation instructions, an ordinary mystery kitchen ingredient, and 1 tip. Constraints: ${constraints}`;
       activeSchema = SurpriseRecipeSchema;
@@ -77,18 +71,17 @@ export async function POST(request: Request) {
       prompt = `Create a realistic 5-day waste-saving schedule utilizing: "${ingredient}". Estimate monetary savings in INR. Constraints: ${constraints}`;
       activeSchema = WeeklyPlanSchema;
     } else {
-      prompt = `Create an everyday recipe based on: "${ingredient}". Write clear, actionable preparation instructions in the steps array. If any common spices or secondary elements are recommended, list them in missingItems. Constraints: ${constraints}`;
+      prompt = `The user typed: "${ingredient}". First silently auto-correct any spelling mistakes in the ingredient or dish name (for example "marsala dosa" should become "masala dosa", "panner" becomes "paneer", "chiken" becomes "chicken"). Then create an everyday recipe based on the corrected name. Use the corrected name as the recipeName. Write clear actionable preparation instructions in the steps array. If any common spices or secondary elements are recommended list them in missingItems. Never return an error for misspelled ingredients — always attempt to find the closest matching dish or ingredient and generate a recipe for it. Constraints: ${constraints}`;
       activeSchema = SingleRecipeSchema;
     }
 
-    // Execute API Call with native Engine-level JSON Constraints
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
         responseSchema: activeSchema,
-        temperature: 0.5 // Allows enough creativity to fully flesh out the instruction text arrays
+        temperature: 0.5
       }
     });
 
