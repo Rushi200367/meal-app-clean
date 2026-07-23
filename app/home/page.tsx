@@ -147,6 +147,7 @@ export default function PremiumHomeScreen() {
                 bg: "#EAF2E8",
                 action: () => handleProtectedAction("save", () => {
                   setDrawerOpen(false);
+                  router.push("/saved");
                 })
               },
               {
