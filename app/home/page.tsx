@@ -24,9 +24,10 @@ export default function PremiumHomeScreen() {
 
   const handleProtectedAction = (trigger: "save" | "cart" | "history" | "profile", action: () => void) => {
     if (isLoggedIn) {
-      action();
-    } else {
-      setDrawerOpen(false);
+     action: () => handleProtectedAction("save", () => {
+  setDrawerOpen(false);
+  router.push("/saved");
+})
       setAuthTrigger(trigger);
       setAuthOpen(true);
     }
@@ -156,6 +157,7 @@ export default function PremiumHomeScreen() {
                 bg: "#EAF2E8",
                 action: () => handleProtectedAction("history", () => {
                   setDrawerOpen(false);
+                 router.push("/history");
                 })
               },
               {
